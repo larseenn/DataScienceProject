@@ -1,4 +1,4 @@
-# DataScienceProject
+# Introduction to Data Science
 
 This will be the repository for the Data Science class "BED-2056". In here I will submit my assignments, coursework and most importantly my data science project.
 
