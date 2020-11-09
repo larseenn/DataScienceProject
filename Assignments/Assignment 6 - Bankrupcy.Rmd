@@ -1,0 +1,83 @@
+---
+title: "Assignment 6"
+author: "Daniel Larsen"
+date: "30.10-20"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+## Mye brukt stackoverflow for assistanse på koder og oppsett
+library(tidyverse)
+library(rvest)
+library(lubridate)
+library(purrr)
+library(ggplot2)
+# Informasjon oppdateres etterhvert som det legges til videre i 2020
+url <- "https://w2.brreg.no/kunngjoring/kombisok.jsp?datoFra=01.01.2019&datoTil=31.12.2019&id_region=0&id_niva1=51&id_niva2=56&id_bransje1=0"
+url2 <- "https://w2.brreg.no/kunngjoring/kombisok.jsp?datoFra=01.01.2020&datoTil=31.12.2020&id_region=0&id_niva1=51&id_niva2=56&id_bransje1=0"
+```
+
+
+```{r include=FALSE}
+#Scraper fra første link og gjør om til en dataframe
+konkurser2019 <- url %>%
+  read_html() %>%
+  html_nodes(xpath = "//table") %>%
+  html_nodes("table") %>%
+  html_table() %>% .[[1]]
+
+ konkurser2020 <- url2 %>%
+  read_html() %>%
+  html_nodes(xpath='//table') %>%
+  html_nodes("table") %>% 
+   html_table() %>% .[[1]]
+ 
+totalkonkurser  <- rbind(konkurser2019,konkurser2020)
+ 
+ totalkonkurser <-select(totalkonkurser,X2,X4,X6,X8)%>% 
+   rename("Selskap" = X2,"Org.nummer" = X4,"Dato" = X6,"Melding" = X8) %>% 
+   mutate(Fylke=ifelse(grepl("[^Dato][A-Za-z]", Dato), Dato, NA))%>%
+   fill(Fylke) %>% filter(Melding == "Konkursåpning") %>% 
+   filter(Fylke != "Utenlands") %>% filter(nchar(Org.nummer) >8)
+ 
+#Setter opp data for videre analyse med hensyn på dato
+ totalkonkurser$Dato <- as.Date(totalkonkurser$Dato,format="%d.%m.%Y")
+ 
+
+ totalkonkurser <- totalkonkurser %>% separate(Dato, into = c("Year","Month"), sep = "-")
+ 
+
+ totalkonkurser$Year <- as.numeric(totalkonkurser$Year)
+ totalkonkurser$Month <- as.numeric(totalkonkurser$Month)
+ 
+
+ totalkonkurser <- totalkonkurser %>% 
+   group_by(Fylke,Month,Year) %>% 
+   mutate(count=row_number()) %>% 
+   filter(count == max(count))
+ 
+ # Sortere data til fylke, år og måned for analyse
+ attach(totalkonkurser)
+ 
+ totalkonkurser <- totalkonkurser[order(Fylke, Year ,Month),]
+ 
+ detach(totalkonkurser)
+ 
+ #Fra numeric tidligere til faktor
+ totalkonkurser$Year <- as.factor(totalkonkurser$Year)
+ totalkonkurser$Month <- as.factor(totalkonkurser$Month)
+ 
+ #SOrterer til kumulativt for ggplot
+ totalkonkurser <- totalkonkurser %>% group_by(Fylke,Year) %>% mutate(cumulative = cumsum(count))
+ 
+```
+
+
+```{r message=FALSE}
+# Lager plot av de kumulative verdiene
+totalkonkurser %>% ggplot(aes(x=Month, y=cumulative, group=Year))+
+          geom_line(aes(color=Year))+
+          facet_wrap(~Fylke)+xlab("Måned")+ylab("Kumulativt")+ggtitle("Konkurser i Norge")+theme(plot.title = element_text(hjust = 0.5))
+```

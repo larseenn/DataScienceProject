@@ -1,0 +1,38 @@
+---
+title: "Assignment 7 - Birthdata"
+author: "Daniel Larsen"
+date: "25 10 2020"
+output: html_document
+---
+
+``{r message=FALSE, echo=FALSE}
+# 1. Proporsjon gutter til jenter
+
+#
+
+df_all %>% 
+  group_by(Year,Kjønn) %>% 
+  mutate(count=row_number()) %>% 
+  filter(count == max(count))%>%
+  ggplot(aes(x=Kjønn, y=count, fill=Kjønn))+
+  geom_bar(colour="blue", stat ="identity", alpha=0.7, size=.4)+
+  facet_wrap(~Year) + labs(title="Gutter(M) og Jenter(F) født i USA mellom 207-2019",x="Sex", y = "Antall fødte")+
+  theme(plot.title = element_text())
+
+# 2. Gjennomsnitt vekt nyfødte
+
+df_all %>% group_by(Year,Kjønn) %>% 
+  filter(Weight < 9999) %>% summarize(mean(Weight)) %>% 
+  rename("Weight1"= `mean(Weight)`) %>% ggplot(aes(x=Kjønn, y=Weight1, fill=Kjønn))+
+  geom_bar(stat ="identity",colour="Green", size=.4)+
+  facet_wrap(~Year) + labs(title="Average weight in US for newborn Male(M) & Female(F) 2017-2019",x="Sex", y = "Gjennomsnittsvekt(G)")+
+   theme(plot.title = element_text())
+
+# 3. Gutter til jenter ved fødsel
+
+df_day <- df_all %>% 
+  group_by(Year,Kjønn,BirthdayWeek) %>% 
+  mutate(count=row_number()) %>% 
+  filter(count == max(count))
+
+```
